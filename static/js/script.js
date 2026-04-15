@@ -1,11 +1,13 @@
 // ── State ──────────────────────────────────────────────
-let currentStockData = null; // Renamed to avoid confusion with STOCKS
+let currentStockData = null; 
 let priceChart = null;
 let currentPeriod = '1W';
+let watchList = JSON.parse(localStorage.getItem('watchlist') || '[]');
 
 // ── API Integration ───────────────────────────────────
 async function analyzeStock() {
-  const ticker = document.getElementById('tickerInput').value.trim();
+  const tickerInput = document.getElementById('tickerInput');
+  const ticker = tickerInput.value.trim().toUpperCase();
   if (!ticker) { showToast('Please enter a stock symbol'); return; }
 
   document.getElementById('emptyState').style.display = 'none';
@@ -19,6 +21,7 @@ async function analyzeStock() {
     const data = await response.json();
     currentStockData = data;
     updateUI(data);
+    updateWatchBtn();
   } catch (error) {
     console.error(error);
     showToast('Error: ' + error.message);
@@ -29,18 +32,19 @@ async function analyzeStock() {
 
 function updateUI(data) {
   const { stock, prices, labels, indicators, signal, prediction } = data;
+  const currency = stock.ticker.endsWith('.NS') || stock.ticker.endsWith('.BSE') ? '₹' : '$';
 
   // Update Stock Info
   document.getElementById('stockName').textContent = stock.name;
   document.getElementById('stockTicker').textContent = stock.ticker;
-  document.getElementById('stockPrice').textContent = '$' + stock.price.toLocaleString();
+  document.getElementById('stockPrice').textContent = currency + stock.price.toLocaleString();
   
   const chEl = document.getElementById('priceChange');
   chEl.textContent = (stock.change >= 0 ? '+' : '') + stock.change + ' (' + (stock.pct >= 0 ? '+' : '') + stock.pct + '%)';
   chEl.className = 'price-change ' + (stock.change >= 0 ? 'up' : 'down');
 
-  document.getElementById('high52').textContent = '$' + stock.high52.toLocaleString();
-  document.getElementById('low52').textContent = '$' + stock.low52.toLocaleString();
+  document.getElementById('high52').textContent = currency + stock.high52.toLocaleString();
+  document.getElementById('low52').textContent = currency + stock.low52.toLocaleString();
   document.getElementById('volume').textContent = stock.vol;
   document.getElementById('mktCap').textContent = stock.cap;
 
@@ -75,7 +79,7 @@ function updateUI(data) {
 
   // Price Targets
   function setPred(idP, idPct, target, base) {
-    document.getElementById(idP).textContent = '$' + target.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    document.getElementById(idP).textContent = currency + target.toLocaleString(undefined, { maximumFractionDigits: 2 });
     const p = ((target - base) / base * 100);
     const isUp = p >= 0;
     const el = document.getElementById(idPct);
@@ -91,11 +95,55 @@ function updateUI(data) {
   document.getElementById('confPct').textContent = prediction.confidence + '%';
 
   // Chart
-  renderChart(prices, labels, prediction);
+  renderChart(prices, labels, prediction, currency);
   
+  // Update source label
+  const srcEl = document.getElementById('sourceLabel');
+  if (data.source === 'simulated') {
+    srcEl.textContent = 'SIMULATED FEED';
+    srcEl.style.background = 'rgba(255,149,0,0.1)';
+    srcEl.style.color = 'var(--sell)';
+  } else {
+    srcEl.textContent = 'REAL FEED';
+    srcEl.style.background = 'rgba(0,229,255,0.1)';
+    srcEl.style.color = 'var(--accent)';
+  }
+
   // Hide previous result
   document.getElementById('calcResult').classList.remove('visible');
   showToast('Analysis complete for ' + stock.ticker);
+}
+
+// ── Watch List Logic ──
+function toggleWatch() {
+  if (!currentStockData) return;
+  const ticker = currentStockData.stock.ticker;
+  const index = watchList.indexOf(ticker);
+  
+  if (index === -1) {
+    watchList.push(ticker);
+    showToast(`${ticker} added to Watch List`);
+  } else {
+    watchList.splice(index, 1);
+    showToast(`${ticker} removed from Watch List`);
+  }
+  
+  localStorage.setItem('watchlist', JSON.stringify(watchList));
+  updateWatchBtn();
+}
+
+function updateWatchBtn() {
+  const btn = document.getElementById('saveBtn');
+  if (!currentStockData || !btn) return;
+  const isWatched = watchList.includes(currentStockData.stock.ticker);
+  
+  if (isWatched) {
+    btn.textContent = '✓ Watched';
+    btn.classList.add('active');
+  } else {
+    btn.textContent = '+ Watch';
+    btn.classList.remove('active');
+  }
 }
 
 function getLabelColor(label) {
@@ -136,9 +184,10 @@ async function calculateReturn() {
     const res = await response.json();
     const isPos = res.profit >= 0;
     const fmt = n => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const currency = currentStockData.stock.ticker.endsWith('.NS') || currentStockData.stock.ticker.endsWith('.BSE') ? '₹' : '$';
 
-    document.getElementById('futureVal').textContent = '$' + fmt(res.futureValue);
-    document.getElementById('profitVal').textContent = (isPos ? '+$' : '-$') + fmt(Math.abs(res.profit));
+    document.getElementById('futureVal').textContent = currency + fmt(res.futureValue);
+    document.getElementById('profitVal').textContent = (isPos ? '+' : '-') + currency + fmt(Math.abs(res.profit));
     document.getElementById('profitVal').className = 'result-val ' + (isPos ? 'up' : 'down');
     document.getElementById('returnPct').textContent = (isPos ? '+' : '') + res.returnPct + '%';
     document.getElementById('returnPct').className = 'result-val ' + (isPos ? 'up' : 'down');
@@ -151,7 +200,7 @@ async function calculateReturn() {
 }
 
 // ── Chart ──────────────────────────────────────────────
-function renderChart(prices, labels, prediction) {
+function renderChart(prices, labels, prediction, currency) {
   const ctx = document.getElementById('priceChart').getContext('2d');
   if (priceChart) priceChart.destroy();
 
@@ -212,7 +261,7 @@ function renderChart(prices, labels, prediction) {
       },
       scales: {
         x: { grid: { color: 'rgba(26,48,71,0.5)' }, ticks: { color: '#5a8fa8', font: { family:'Space Mono', size:9 }, maxTicksLimit: 8 } },
-        y: { grid: { color: 'rgba(26,48,71,0.5)' }, ticks: { color: '#5a8fa8', font: { family:'Space Mono', size:9 }, callback: v => '$'+v.toLocaleString() } }
+        y: { grid: { color: 'rgba(26,48,71,0.5)' }, ticks: { color: '#5a8fa8', font: { family:'Space Mono', size:9 }, callback: v => currency+v.toLocaleString() } }
       }
     }
   });
@@ -229,23 +278,24 @@ function switchChart(period, el) {
   currentPeriod = period;
   if (!currentStockData) return;
 
-  // We reuse the current analysis data for simple period switching
-  // but if we wanted real new data we would fetch again with a period param
   showToast('Switched to ' + period + ' view');
-  // For now we just re-render with the same data for simplicity as the backend mock is random anyway
-  renderChart(currentStockData.prices, currentStockData.labels, currentStockData.prediction);
+  const currency = currentStockData.stock.ticker.endsWith('.NS') || currentStockData.stock.ticker.endsWith('.BSE') ? '₹' : '$';
+  renderChart(currentStockData.prices, currentStockData.labels, currentStockData.prediction, currency);
 }
-
 
 // ── Toast ──────────────────────────────────────────────
 function showToast(msg) {
   const t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 // Enter key
-document.getElementById('tickerInput').addEventListener('keypress', e => {
-  if (e.key === 'Enter') analyzeStock();
-});
+const tickerInput = document.getElementById('tickerInput');
+if (tickerInput) {
+  tickerInput.addEventListener('keypress', e => {
+    if (e.key === 'Enter') analyzeStock();
+  });
+}

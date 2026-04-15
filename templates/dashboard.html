@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard | IntelliStock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">📈</div>
+      <div class="logo-text">Intelli<span>Stock</span></div>
+    </div>
+    
+    <nav class="nav-links">
+      <a href="/dashboard" class="nav-link active">⚡ <span>Dashboard</span></a>
+      <a href="/analyze" class="nav-link">🔍 <span>Live Analyzer</span></a>
+      <a href="/watchlist" class="nav-link">🎯 <span>Watch List</span></a>
+      <div style="margin-top: auto; border-top: 1px solid var(--border); padding-top: 20px;">
+        <a href="/logout" class="nav-link" style="color: var(--strong-sell);">⏻ <span>Logout</span></a>
+      </div>
+    </nav>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <div class="welcome-section">
+      <h1 class="welcome-h1">Welcome back, <span>{{ user }}</span></h1>
+      <p class="welcome-sub">System initialized. Market status: 🟢 OPEN</p>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dash-icon">💹</div>
+        <div class="dash-label">Market Sentiment</div>
+        <div class="dash-num" style="color: var(--strong-buy);">BULLISH</div>
+        <div class="stat-label">AI CONFIDENCE: 88%</div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-icon">🔥</div>
+        <div class="dash-label">Active Watches</div>
+        <div class="dash-num" id="watchCount">0</div>
+        <div class="stat-label">STOCKS TRACKED</div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-icon">🛡️</div>
+        <div class="dash-label">Safety Index</div>
+        <div class="dash-num" style="color: var(--accent);">STABLE</div>
+        <div class="stat-label">VOLATILITY: LOW</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Top Asset Overview</span>
+        <a href="/analyze" class="btn-primary" style="padding: 6px 14px; font-size: 11px; text-decoration: none;">New Analysis →</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Asset</th>
+              <th>Live Price</th>
+              <th>24H Change</th>
+              <th>AI Signal</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="tr-hover">
+              <td><b>Apple Inc. (AAPL)</b></td>
+              <td>$258.83</td>
+              <td class="up">+1.23%</td>
+              <td><span class="signal-badge" style="background: rgba(57,255,20,0.1); color: var(--buy); font-size: 10px;">BUY</span></td>
+              <td><a href="/analyze" class="btn-primary" style="padding: 4px 10px; font-size: 10px; text-decoration: none;">View</a></td>
+            </tr>
+            <tr class="tr-hover">
+              <td><b>NVIDIA (NVDA)</b></td>
+              <td>$875.39</td>
+              <td class="up">+2.17%</td>
+              <td><span class="signal-badge" style="background: rgba(0,255,136,0.1); color: var(--strong-buy); font-size: 10px;">STRONG BUY</span></td>
+              <td><a href="/analyze" class="btn-primary" style="padding: 4px 10px; font-size: 10px; text-decoration: none;">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Simple check for watch count from localStorage
+  const watchList = JSON.parse(localStorage.getItem('watchlist') || '[]');
+  document.getElementById('watchCount').textContent = watchList.length;
+</script>
+
+</body>
+</html>

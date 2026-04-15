@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login | IntelliStock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="logo-icon" style="margin: 0 auto 15px;">📊</div>
+      <h1 class="auth-title">Intelli<span>Stock</span></h1>
+      <p class="auth-sub">Enter your credentials to access the terminal</p>
+    </div>
+
+    <form method="POST">
+      <div class="form-group">
+        <label class="form-label">OPERATOR ID</label>
+        <input class="auth-input" type="text" name="username" placeholder="e.g. AMAN_2311" required />
+      </div>
+      <div class="form-group">
+        <label class="form-label">ACCESS CODE</label>
+        <input class="auth-input" type="password" name="password" placeholder="••••••••" required />
+      </div>
+      <button type="submit" class="btn-auth">ESTABLISH CONNECTION →</button>
+    </form>
+    
+    <div style="margin-top: 25px; text-align: center; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); opacity: 0.6;">
+       SECURE TERMINAL ACCESS v1.0.4 <br/>
+       ENCRYPTION: AES-256-GCM
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

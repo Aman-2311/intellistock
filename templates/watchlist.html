@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watch List | IntelliStock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">📈</div>
+      <div class="logo-text">Intelli<span>Stock</span></div>
+    </div>
+    
+    <nav class="nav-links">
+      <a href="/dashboard" class="nav-link">⚡ <span>Dashboard</span></a>
+      <a href="/analyze" class="nav-link">🔍 <span>Live Analyzer</span></a>
+      <a href="/watchlist" class="nav-link active">🎯 <span>Watch List</span></a>
+      <div style="margin-top: auto; border-top: 1px solid var(--border); padding-top: 20px;">
+        <a href="/logout" class="nav-link" style="color: var(--strong-sell);">⏻ <span>Logout</span></a>
+      </div>
+    </nav>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <div class="welcome-section">
+      <h1 class="welcome-h1">Personal <span>Watch List</span></h1>
+      <p class="welcome-sub">Assets saved for priority monitoring and AI alerts</p>
+    </div>
+
+    <div class="card card-full">
+      <div class="card-header">
+        <span class="card-title">Saved Assets</span>
+        <div style="font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted);">PERSISTENT LOCAL CACHE: ENABLED</div>
+      </div>
+      <div class="table-wrap">
+        <table id="watchTable">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="watchBody">
+            <!-- Dynamically filled -->
+          </tbody>
+        </table>
+      </div>
+      <div id="noWatches" style="display:none; padding:60px; text-align:center; color:var(--muted);">
+        <div style="font-size: 40px; margin-bottom: 20px; opacity: 0.3;">📉</div>
+        <p>No assets in your watch list yet.</p>
+        <a href="/analyze" class="btn-primary" style="display:inline-block; margin-top:20px; text-decoration:none;">Go to Analyzer →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function renderWatchlist() {
+    const list = JSON.parse(localStorage.getItem('watchlist') || '[]');
+    const body = document.getElementById('watchBody');
+    const emptyState = document.getElementById('noWatches');
+    const table = document.getElementById('watchTable');
+    
+    if (list.length === 0) {
+      table.style.display = 'none';
+      emptyState.style.display = 'block';
+      return;
+    }
+    
+    body.innerHTML = '';
+    list.forEach(ticker => {
+      body.innerHTML += `
+        <tr class="tr-hover">
+          <td><b>${ticker}</b></td>
+          <td><span class="up" style="font-size: 11px;">● ACTIVE TRACKING</span></td>
+          <td>
+             <div style="display:flex; gap:10px;">
+               <button class="btn-primary" style="padding:4px 10px; font-size:10px;" onclick="window.location.href='/analyze?ticker=${ticker}'">Analyze</button>
+               <button class="btn-save" style="padding:4px 10px;" onclick="removeWatch('${ticker}')">Remove</button>
+             </div>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  function removeWatch(ticker) {
+    let list = JSON.parse(localStorage.getItem('watchlist') || '[]');
+    list = list.filter(t => t !== ticker);
+    localStorage.setItem('watchlist', JSON.stringify(list));
+    renderWatchlist();
+  }
+
+  window.onload = renderWatchlist;
+</script>
+
+</body>
+</html>

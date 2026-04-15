@@ -4,13 +4,23 @@ Provides stock analysis API endpoints with simulated ML predictions.
 Run: pip install flask flask-cors && python app.py
 """
 
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, session, redirect, url_for
 from flask_cors import CORS
 import yfinance as yf
-import math, random, datetime, time
+import math, random, datetime, time, functools
 
 app = Flask(__name__)
+app.secret_key = 'intellistock_secret_key_99' # In production, use an environment variable
 CORS(app)
+
+# ── Auth Decorator ──────────────────────────────────────────────────────────
+def login_required(f):
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # ── Cache Layer ───────────────────────────────────────────────────────────────
 STOCK_CACHE = {} # ticker -> {data, timestamp}
@@ -193,9 +203,44 @@ def predict_prices(base: float, trend: str, targets: dict = None) -> dict:
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
+# ── View Routes ────────────────────────────────────────────────────────────────
 @app.route('/')
-def index():
-    return render_template('index.html')
+def home():
+    # If logged in, show analyzer, else show login
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        # Simple mock auth
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if username and password: # Accepting any non-empty credentials for demo
+            session['user'] = username
+            return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html', user=session['user'])
+
+@app.route('/analyze')
+@login_required
+def analyzer():
+    return render_template('index.html', user=session['user'])
+
+@app.route('/watchlist')
+@login_required
+def watchlist():
+    return render_template('watchlist.html', user=session['user'])
 
 
 @app.route('/api/analyze/<ticker>')
