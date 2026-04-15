@@ -68,7 +68,13 @@ def get_real_stock_data(ticker_symbol):
                 "low52": info.get('fiftyTwoWeekLow') or "N/A",
                 "vol": format_number(info.get('volume')),
                 "cap": format_number(info.get('marketCap')),
-                "trend": trend
+                "trend": trend,
+                "analystTargets": {
+                    "mean": info.get('targetMeanPrice'),
+                    "high": info.get('targetHighPrice'),
+                    "count": info.get('numberOfAnalystOpinions')
+                },
+                "recommendation": info.get('recommendationKey')
             },
             "prices": prices,
             "labels": labels
@@ -162,12 +168,26 @@ def score_to_label(score: int) -> str:
     return "STRONG SELL"
 
 
-def predict_prices(base: float, trend: str) -> dict:
-    bias = 1.025 if trend == "bullish" else 0.975 if trend == "bearish" else 1.0
-    r1w = round(base * (bias + (random.random() - 0.3) * 0.02), 2)
-    r1m = round(base * (bias ** 4 + (random.random() - 0.3) * 0.05), 2)
-    r3m = round(base * (bias ** 12 + (random.random() - 0.3) * 0.10), 2)
-    confidence = random.randint(55, 85)
+def predict_prices(base: float, trend: str, targets: dict = None) -> dict:
+    # Use real analyst targets if available
+    if targets and targets.get('mean'):
+        mean = targets['mean']
+        # Smooth the movement for different periods
+        r1w = round(base + (mean - base) * 0.25, 2)
+        r1m = round(base + (mean - base) * 0.70, 2)
+        r3m = round(mean, 2)
+        
+        # Confidence based on number of analysts or set a high floor for professional data
+        count = targets.get('count', 0)
+        confidence = min(95, 65 + (count // 10)) if count else random.randint(70, 85)
+    else:
+        # Fallback to simulation
+        bias = 1.025 if trend == "bullish" else 0.975 if trend == "bearish" else 1.0
+        r1w = round(base * (bias + (random.random() - 0.3) * 0.02), 2)
+        r1m = round(base * (bias ** 4 + (random.random() - 0.3) * 0.05), 2)
+        r3m = round(base * (bias ** 12 + (random.random() - 0.3) * 0.10), 2)
+        confidence = random.randint(55, 85)
+        
     return {"r1w": r1w, "r1m": r1m, "r3m": r3m, "confidence": confidence}
 
 
@@ -224,8 +244,15 @@ def analyze(ticker: str):
     # Common analysis logic
     indicators = build_indicators(prices, stock["trend"])
     score = signal_score(indicators)
+    
+    # Refine score with analyst recommendation if available
+    rec = stock.get('recommendation')
+    if rec:
+        rec_boost = {"strong_buy": 15, "buy": 10, "hold": 0, "underperform": -10, "sell": -20}.get(rec, 0)
+        score = max(5, min(95, score + rec_boost))
+
     label = score_to_label(score)
-    prediction = predict_prices(stock["price"], stock["trend"])
+    prediction = predict_prices(stock["price"], stock["trend"], stock.get('analystTargets'))
 
     result = {
         "stock": stock,
