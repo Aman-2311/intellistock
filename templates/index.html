@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IntelliStock — AI Stock Predictor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<div class="container">
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📈</div>
+      <div>
+        <div class="logo-text">Intelli<span>Stock</span></div>
+        <div class="tagline">AI · PREDICT · PROFIT</div>
+      </div>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE ANALYSIS
+    </div>
+  </header>
+
+  <!-- SEARCH -->
+  <div class="search-section">
+    <h1>Predict Any Stock with <span>AI Precision</span></h1>
+    <p class="search-sub">Enter a ticker symbol to get AI-powered signals, price targets & return projections</p>
+    <div class="search-box">
+      <input class="search-input" id="tickerInput" type="text" placeholder="e.g. AAPL, TSLA, RELIANCE.NS" maxlength="20" />
+      <button class="btn-primary" onclick="analyzeStock()">Analyze →</button>
+    </div>
+    <div class="quick-picks">
+      <span class="pick-chip" onclick="quickPick('AAPL')">AAPL</span>
+      <span class="pick-chip" onclick="quickPick('TSLA')">TSLA</span>
+      <span class="pick-chip" onclick="quickPick('NVDA')">NVDA</span>
+      <span class="pick-chip" onclick="quickPick('MSFT')">MSFT</span>
+      <span class="pick-chip" onclick="quickPick('RELIANCE')">RELIANCE</span>
+      <span class="pick-chip" onclick="quickPick('TCS')">TCS</span>
+      <span class="pick-chip" onclick="quickPick('GOOGL')">GOOGL</span>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid" id="mainContent" style="display:none;">
+
+    <!-- LEFT COLUMN -->
+    <div style="display:flex; flex-direction:column; gap:20px;">
+
+      <!-- Price Chart Card -->
+      <div class="card" style="position:relative;">
+        <div class="loading-overlay" id="chartLoader"><div class="spinner"></div></div>
+        <div class="card-header">
+          <span class="card-title">Price History & Prediction</span>
+          <div class="chart-tabs">
+            <span class="chart-tab active" onclick="switchChart('1W',this)">1W</span>
+            <span class="chart-tab" onclick="switchChart('1M',this)">1M</span>
+            <span class="chart-tab" onclick="switchChart('3M',this)">3M</span>
+          </div>
+        </div>
+        <div class="price-section">
+          <div class="stock-info">
+            <div>
+              <div class="stock-name" id="stockName">—</div>
+              <div class="stock-ticker" id="stockTicker">—</div>
+            </div>
+            <div class="price-block">
+              <div class="price" id="stockPrice">—</div>
+              <div class="price-change" id="priceChange">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="priceChart"></canvas>
+        </div>
+        <div class="stats-row">
+          <div class="stat-cell">
+            <div class="stat-label">52W HIGH</div>
+            <div class="stat-value" id="high52">—</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">52W LOW</div>
+            <div class="stat-value" id="low52">—</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">VOLUME</div>
+            <div class="stat-value" id="volume">—</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">MKT CAP</div>
+            <div class="stat-value" id="mktCap">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prediction Targets -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🎯 Price Targets</span>
+          <span id="predLabel" style="font-family:'Space Mono',monospace; font-size:11px; color:var(--muted)">AI FORECAST</span>
+        </div>
+        <div class="pred-section">
+          <div class="pred-targets">
+            <div class="pred-target">
+              <div class="pred-period">1 WEEK</div>
+              <div class="pred-price" id="p1w">—</div>
+              <div class="pred-pct" id="pct1w">—</div>
+            </div>
+            <div class="pred-target">
+              <div class="pred-period">1 MONTH</div>
+              <div class="pred-price" id="p1m">—</div>
+              <div class="pred-pct" id="pct1m">—</div>
+            </div>
+            <div class="pred-target">
+              <div class="pred-period">3 MONTHS</div>
+              <div class="pred-price" id="p3m">—</div>
+              <div class="pred-pct" id="pct3m">—</div>
+            </div>
+          </div>
+          <div class="pred-confidence">
+            <span class="conf-text">CONFIDENCE</span>
+            <div class="conf-bar-wrap">
+              <div class="conf-bar" id="confBar" style="width:0%"></div>
+            </div>
+            <span class="conf-text" id="confPct">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div style="display:flex; flex-direction:column; gap:20px;">
+
+      <!-- Signal Indicator -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⚡ Signal Indicator</span>
+        </div>
+        <div class="signal-section">
+          <div class="signal-gauge">
+            <div class="signal-label-row">
+              <span>STRONG SELL</span>
+              <span>SELL</span>
+              <span>NEUTRAL</span>
+              <span>BUY</span>
+              <span>STRONG BUY</span>
+            </div>
+            <div class="signal-bar">
+              <div class="signal-needle" id="signalNeedle" style="left:50%"></div>
+            </div>
+          </div>
+
+          <div class="signal-result">
+            <div class="signal-badge" id="signalBadge">NEUTRAL</div>
+            <div class="signal-score" id="signalScore">Score: 0 / 100</div>
+          </div>
+
+          <div class="indicator-list" id="indicatorList">
+            <!-- filled by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Future Return Calculator -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">💰 Return Calculator</span>
+        </div>
+        <div class="calc-section">
+          <div class="calc-row">
+            <label class="calc-label">INVESTMENT AMOUNT (₹ / $)</label>
+            <input class="calc-input" type="number" id="calcAmount" placeholder="e.g. 50000" min="1" />
+          </div>
+          <div class="calc-row">
+            <label class="calc-label">HOLDING PERIOD</label>
+            <select class="calc-input" id="calcPeriod">
+              <option value="1w">1 Week</option>
+              <option value="1m" selected>1 Month</option>
+              <option value="3m">3 Months</option>
+              <option value="6m">6 Months</option>
+              <option value="1y">1 Year</option>
+            </select>
+          </div>
+          <div class="calc-row">
+            <label class="calc-label">SCENARIO</label>
+            <select class="calc-input" id="calcScenario">
+              <option value="base">Base Case (AI Predicted)</option>
+              <option value="bull">Bull Case (+30%)</option>
+              <option value="bear">Bear Case (-20%)</option>
+            </select>
+          </div>
+          <button class="btn-calc" onclick="calculateReturn()">Calculate Returns →</button>
+
+          <div class="calc-result" id="calcResult">
+            <div class="result-grid">
+              <div class="result-item">
+                <div class="result-label">FUTURE VALUE</div>
+                <div class="result-val up" id="futureVal">—</div>
+              </div>
+              <div class="result-item">
+                <div class="result-label">PROFIT / LOSS</div>
+                <div class="result-val" id="profitVal">—</div>
+              </div>
+              <div class="result-item">
+                <div class="result-label">RETURN %</div>
+                <div class="result-val" id="returnPct">—</div>
+              </div>
+              <div class="result-item">
+                <div class="result-label">SHARES (EST.)</div>
+                <div class="result-val" id="sharesEst">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div id="emptyState" style="padding: 40px 0;">
+    <div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-text">Enter a stock symbol above to begin analysis</div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    ⚠ IntelliStock predictions are for educational purposes only. Not financial advice.<br/>
+    Past performance does not guarantee future results. Always do your own research.
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="/static/js/script.js"></script>
+
+</body>
+</html>
