@@ -6,13 +6,17 @@ Run: pip install flask flask-cors && python app.py
 
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
-import math, random, datetime
+import yfinance as yf
+import math, random, datetime, time
 
 app = Flask(__name__)
-
 CORS(app)
 
-# ── Mock Stock Data ────────────────────────────────────────────────────────────
+# ── Cache Layer ───────────────────────────────────────────────────────────────
+STOCK_CACHE = {} # ticker -> {data, timestamp}
+CACHE_EXPIRY = 300 # 5 minutes
+
+# ── Mock Stock Data (Fallback) ────────────────────────────────────────────────
 STOCK_DB = {
     "AAPL":     {"name": "Apple Inc.",          "price": 189.84, "change": 2.31,   "pct": 1.23,  "high52": 199.62, "low52": 164.08, "vol": "58.2M", "cap": "2.94T", "trend": "bullish"},
     "TSLA":     {"name": "Tesla Inc.",           "price": 248.50, "change": -5.20,  "pct": -2.05, "high52": 488.54, "low52": 138.80, "vol": "92.1M", "cap": "795B",  "trend": "neutral"},
@@ -24,6 +28,54 @@ STOCK_DB = {
     "AMZN":     {"name": "Amazon.com Inc.",      "price": 185.07, "change": -2.15,  "pct": -1.15, "high52": 229.00, "low52": 151.61, "vol": "33.6M", "cap": "1.92T", "trend": "neutral"},
     "META":     {"name": "Meta Platforms",       "price": 502.30, "change": 8.45,   "pct": 1.71,  "high52": 589.60, "low52": 352.47, "vol": "18.9M", "cap": "1.28T", "trend": "bullish"},
 }
+
+# ── Real Data Integration ─────────────────────────────────────────────────────
+
+def format_number(num):
+    if num is None: return "N/A"
+    if num >= 1e12: return f"{num/1e12:.2f}T"
+    if num >= 1e9: return f"{num/1e9:.2f}B"
+    if num >= 1e6: return f"{num/1e6:.2f}M"
+    return f"{num:,.0f}"
+
+def get_real_stock_data(ticker_symbol):
+    try:
+        t = yf.Ticker(ticker_symbol)
+        info = t.info
+        
+        # Historical data for labels/prices
+        hist = t.history(period="3mo")
+        if hist.empty: raise ValueError("No history found")
+        
+        prices = [round(float(p), 2) for p in hist['Close'].tolist()]
+        labels = [d.strftime("%b %d") for d in hist.index]
+        
+        price = info.get('currentPrice') or info.get('regularMarketPrice') or prices[-1]
+        prev_close = info.get('regularMarketPreviousClose') or info.get('previousClose') or prices[-2]
+        change = round(price - prev_close, 2)
+        pct = round((change / prev_close) * 100, 2) if prev_close else 0
+        
+        trend = "bullish" if pct > 0.5 else "bearish" if pct < -0.5 else "neutral"
+        
+        return {
+            "stock": {
+                "name": info.get('shortName') or info.get('longName') or ticker_symbol,
+                "ticker": ticker_symbol,
+                "price": price,
+                "change": change,
+                "pct": pct,
+                "high52": info.get('fiftyTwoWeekHigh') or "N/A",
+                "low52": info.get('fiftyTwoWeekLow') or "N/A",
+                "vol": format_number(info.get('volume')),
+                "cap": format_number(info.get('marketCap')),
+                "trend": trend
+            },
+            "prices": prices,
+            "labels": labels
+        }
+    except Exception as e:
+        print(f"Error fetching real data for {ticker_symbol}: {e}")
+        return None
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
 def generate_price_history(base_price: float, days: int) -> list:
@@ -128,44 +180,68 @@ def index():
 
 @app.route('/api/analyze/<ticker>')
 def analyze(ticker: str):
-    t = ticker.upper().replace(".NS", "").replace(".BSE", "")
+    t_symbol = ticker.upper()
+    
+    # 1. Check Cache
+    if t_symbol in STOCK_CACHE:
+        cached = STOCK_CACHE[t_symbol]
+        if time.time() - cached['timestamp'] < CACHE_EXPIRY:
+            return jsonify(cached['data'])
 
-    if t in STOCK_DB:
-        stock = {**STOCK_DB[t], "ticker": t}
+    # 2. Try Real Data
+    real_data = get_real_stock_data(t_symbol)
+    
+    if real_data:
+        stock = real_data["stock"]
+        prices = real_data["prices"]
+        labels = real_data["labels"]
     else:
-        price = round(random.uniform(50, 350), 2)
-        change = round((random.random() - 0.48) * price * 0.04, 2)
-        stock = {
-            "name": t + " Corp.",
-            "ticker": t,
-            "price": price,
-            "change": change,
-            "pct": round(change / price * 100, 2),
-            "high52": round(price * 1.35, 2),
-            "low52": round(price * 0.72, 2),
-            "vol": f"{random.uniform(5, 80):.1f}M",
-            "cap": f"{random.uniform(20, 500):.0f}B",
-            "trend": random.choice(["bullish", "neutral", "bearish"]),
-        }
+        # 3. Fallback to Simulation
+        t = t_symbol.replace(".NS", "").replace(".BSE", "")
+        if t in STOCK_DB:
+            stock = {**STOCK_DB[t], "ticker": t}
+        else:
+            price = round(random.uniform(50, 350), 2)
+            change = round((random.random() - 0.48) * price * 0.04, 2)
+            stock = {
+                "name": t + " Corp.",
+                "ticker": t,
+                "price": price,
+                "change": change,
+                "pct": round(change / price * 100, 2),
+                "high52": round(price * 1.35, 2),
+                "low52": round(price * 0.72, 2),
+                "vol": f"{random.uniform(5, 80):.1f}M",
+                "cap": f"{random.uniform(20, 500):.0f}B",
+                "trend": random.choice(["bullish", "neutral", "bearish"]),
+            }
 
-    days = 90
-    prices = generate_price_history(stock["price"] * 0.92, days)
-    prices[-1] = stock["price"]
-    labels = generate_labels(days)
+        days = 90
+        prices = generate_price_history(stock["price"] * 0.92, days)
+        prices[-1] = stock["price"]
+        labels = generate_labels(days)
 
+    # Common analysis logic
     indicators = build_indicators(prices, stock["trend"])
     score = signal_score(indicators)
     label = score_to_label(score)
     prediction = predict_prices(stock["price"], stock["trend"])
 
-    return jsonify({
+    result = {
         "stock": stock,
         "prices": prices[-30:],
         "labels": labels[-30:],
         "indicators": indicators,
         "signal": {"score": score, "label": label},
         "prediction": prediction,
-    })
+        "source": "api" if real_data else "simulated"
+    }
+    
+    # Update Cache
+    STOCK_CACHE[t_symbol] = {'data': result, 'timestamp': time.time()}
+    
+    return jsonify(result)
+
 
 
 @app.route('/api/calculate', methods=['POST'])
