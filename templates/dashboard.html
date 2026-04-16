@@ -95,9 +95,18 @@
 </div>
 
 <script>
-  // Simple check for watch count from localStorage
-  const watchList = JSON.parse(localStorage.getItem('watchlist') || '[]');
-  document.getElementById('watchCount').textContent = watchList.length;
+  async function updateDashboard() {
+    try {
+      const res = await fetch('/api/get_watchlist');
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('watchCount').textContent = data.length;
+      }
+    } catch (err) {
+      console.error('Failed to fetch dashboard data', err);
+    }
+  }
+  updateDashboard();
 </script>
 
 </body>

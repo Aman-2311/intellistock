@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login | IntelliStock</title>
+  <title>Initialize Account | IntelliStock</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/css/style.css" />
@@ -13,9 +13,9 @@
 <div class="auth-container">
   <div class="auth-card">
     <div class="auth-header">
-      <div class="logo-icon" style="margin: 0 auto 15px;">📊</div>
+      <div class="logo-icon" style="margin: 0 auto 15px;">🛰️</div>
       <h1 class="auth-title">Intelli<span>Stock</span></h1>
-      <p class="auth-sub">Enter your credentials to access the terminal</p>
+      <p class="auth-sub">Initialize your terminal operator credentials</p>
     </div>
 
     <form method="POST">
@@ -25,23 +25,27 @@
       </div>
       {% endif %}
       <div class="form-group">
-        <label class="form-label">OPERATOR ID</label>
+        <label class="form-label">REQUEST OPERATOR ID</label>
         <input class="auth-input" type="text" name="username" placeholder="e.g. AMAN_2311" required />
       </div>
       <div class="form-group">
-        <label class="form-label">ACCESS CODE</label>
+        <label class="form-label">SET ACCESS CODE</label>
         <input class="auth-input" type="password" name="password" placeholder="••••••••" required />
       </div>
-      <button type="submit" class="btn-auth">ESTABLISH CONNECTION →</button>
+      <div class="form-group">
+        <label class="form-label">CONFIRM ACCESS CODE</label>
+        <input class="auth-input" type="password" name="confirm_password" placeholder="••••••••" required />
+      </div>
+      <button type="submit" class="btn-auth">INITIALIZE TERMINAL →</button>
     </form>
     
     <div style="margin-top: 20px; text-align: center;">
-      <p style="font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted);">New operator? <a href="/signup" style="color: var(--accent); text-decoration: none;">INITIALIZE ACCOUNT</a></p>
+      <p style="font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted);">Already verified? <a href="/login" style="color: var(--accent); text-decoration: none;">ACCESS TERMINAL</a></p>
     </div>
-    
+
     <div style="margin-top: 25px; text-align: center; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); opacity: 0.6;">
-       SECURE TERMINAL ACCESS v1.0.4 <br/>
-       ENCRYPTION: AES-256-GCM
+       SYSTEM INITIALIZATION v1.0.4 <br/>
+       SECURITY REGISTRY: ACTIVE
     </div>
   </div>
 </div>

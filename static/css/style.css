@@ -818,3 +818,104 @@ td { padding: 18px; border-bottom: 1px solid var(--border); font-family: 'Space 
   .nav-link span { display: none; }
   .dash-grid { grid-template-columns: 1fr; }
 }
+
+/* Watchlist Grid */
+.watchlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.watchlist-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.watchlist-item::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px; height: 100%;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.watchlist-item:hover {
+  transform: translateY(-5px);
+  border-color: var(--accent);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.watchlist-item:hover::before {
+  opacity: 1;
+}
+
+.w-ticker {
+  font-family: 'Space Mono', monospace;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.w-name {
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.w-price-block {
+  text-align: right;
+}
+
+.w-price {
+  font-family: 'Space Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.w-change {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.w-action {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,45,85,0.1);
+  color: var(--strong-sell);
+  border-radius: 50%;
+  font-size: 16px;
+  opacity: 0;
+  transition: all 0.3s;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.watchlist-item:hover .w-action {
+  opacity: 1;
+}
+
+.w-action:hover {
+  background: var(--strong-sell);
+  color: #fff;
+  transform: scale(1.1);
+}

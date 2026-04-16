@@ -7,11 +7,26 @@ Run: pip install flask flask-cors && python app.py
 from flask import Flask, jsonify, request, render_template, session, redirect, url_for
 from flask_cors import CORS
 import yfinance as yf
-import math, random, datetime, time, functools
+import math, random, datetime, time, functools, json, os
 
 app = Flask(__name__)
 app.secret_key = 'intellistock_secret_key_99' # In production, use an environment variable
 CORS(app)
+
+USERS_FILE = 'users.json'
+
+def load_users():
+    if not os.path.exists(USERS_FILE):
+        return {}
+    with open(USERS_FILE, 'r') as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return {}
+
+def save_users(users):
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f, indent=4)
 
 # ── Auth Decorator ──────────────────────────────────────────────────────────
 def login_required(f):
@@ -33,10 +48,21 @@ STOCK_DB = {
     "NVDA":     {"name": "NVIDIA Corp.",         "price": 875.39, "change": 18.62,  "pct": 2.17,  "high52": 974.00, "low52": 462.42, "vol": "41.8M", "cap": "2.15T", "trend": "bullish"},
     "MSFT":     {"name": "Microsoft Corp.",      "price": 415.22, "change": 3.85,   "pct": 0.94,  "high52": 468.35, "low52": 362.90, "vol": "22.4M", "cap": "3.08T", "trend": "bullish"},
     "GOOGL":    {"name": "Alphabet Inc.",        "price": 172.63, "change": 1.42,   "pct": 0.83,  "high52": 193.31, "low52": 130.67, "vol": "24.6M", "cap": "2.15T", "trend": "bullish"},
-    "RELIANCE": {"name": "Reliance Industries",  "price": 1294.70,"change": -12.30, "pct": -0.94, "high52": 1608.95,"low52":1175.00, "vol": "8.9M",  "cap": "17.5LCr","trend": "neutral"},
-    "TCS":      {"name": "Tata Consultancy",     "price": 3562.45,"change": 45.80,  "pct": 1.30,  "high52": 4592.25,"low52":3056.05, "vol": "2.3M",  "cap": "12.9LCr","trend": "bullish"},
     "AMZN":     {"name": "Amazon.com Inc.",      "price": 185.07, "change": -2.15,  "pct": -1.15, "high52": 229.00, "low52": 151.61, "vol": "33.6M", "cap": "1.92T", "trend": "neutral"},
     "META":     {"name": "Meta Platforms",       "price": 502.30, "change": 8.45,   "pct": 1.71,  "high52": 589.60, "low52": 352.47, "vol": "18.9M", "cap": "1.28T", "trend": "bullish"},
+    # 10+ Indian Companies
+    "RELIANCE": {"name": "Reliance Industries",  "price": 2944.70,"change": 32.30,  "pct": 1.11,  "high52": 3100.00,"low52":2210.00, "vol": "8.9M",  "cap": "19.9LCr","trend": "bullish"},
+    "TCS":      {"name": "Tata Consultancy",     "price": 3862.45,"change": 45.80,  "pct": 1.20,  "high52": 4254.00,"low52":3156.05, "vol": "2.3M",  "cap": "13.9LCr","trend": "bullish"},
+    "HDFCBANK": {"name": "HDFC Bank Ltd.",       "price": 1530.45, "change": 12.30,  "pct": 0.81,  "high52": 1757.50, "low52": 1363.55, "vol": "18.2M", "cap": "11.6LCr","trend": "bullish"},
+    "INFY":     {"name": "Infosys Ltd.",         "price": 1420.10, "change": -15.40, "pct": -1.07, "high52": 1733.00, "low52": 1185.00, "vol": "6.1M",  "cap": "5.9LCr", "trend": "neutral"},
+    "ICICIBANK":{"name": "ICICI Bank Ltd.",      "price": 1085.20, "change": 8.15,   "pct": 0.76,  "high52": 1113.40, "low52": 820.00,  "vol": "12.5M", "cap": "7.6LCr", "trend": "bullish"},
+    "HINDUNILVR":{"name": "Hindustan Unilever",  "price": 2245.60, "change": -22.40, "pct": -0.99, "high52": 2769.65, "low52": 2172.05, "vol": "1.8M",  "cap": "5.3LCr", "trend": "bearish"},
+    "ITC":      {"name": "ITC Ltd.",             "price": 428.15,  "change": 2.45,   "pct": 0.58,  "high52": 499.70,  "low52": 370.00,  "vol": "14.2M", "cap": "5.3LCr", "trend": "bullish"},
+    "SBIN":     {"name": "State Bank of India",  "price": 765.40,  "change": 5.20,   "pct": 0.68,  "high52": 794.60,  "low52": 501.55,  "vol": "22.8M", "cap": "6.8LCr", "trend": "bullish"},
+    "BHARTIARTL":{"name": "Bharti Airtel Ltd.",  "price": 1215.30, "change": 14.50,  "pct": 1.21,  "high52": 1245.00, "low52": 735.00,  "vol": "5.4M",  "cap": "6.9LCr", "trend": "bullish"},
+    "KOTAKBANK":{"name": "Kotak Mahindra Bank", "price": 1785.10, "change": -10.30, "pct": -0.57, "high52": 2063.00, "low52": 1645.00, "vol": "3.2M",  "cap": "3.5LCr", "trend": "neutral"},
+    "LT":       {"name": "Larsen & Toubro",      "price": 3650.00, "change": 42.60,  "pct": 1.18,  "high52": 3738.90, "low52": 2150.00, "vol": "2.1M",  "cap": "5.1LCr", "trend": "bullish"},
+    "AXISBANK": {"name": "Axis Bank Ltd.",       "price": 1050.45, "change": 4.20,   "pct": 0.40,  "high52": 1151.85, "low52": 815.00,  "vol": "8.9M",  "cap": "3.2LCr", "trend": "neutral"},
 }
 
 # ── Real Data Integration ─────────────────────────────────────────────────────
@@ -143,12 +169,14 @@ def compute_bollinger(prices: list, period: int = 20):
     return round(mean + 2 * std, 2), round(mean - 2 * std, 2)
 
 
-def build_indicators(prices: list, trend: str) -> list:
+def build_indicators(prices: list, trend: str, ticker: str = "") -> list:
     last = prices[-1]
     rsi = compute_rsi(prices)
     macd = compute_macd(prices)
     sma20 = compute_sma(prices, 20)
     bb_upper, bb_lower = compute_bollinger(prices)
+    
+    currency = "₹" if ticker.endswith(".NS") or ticker.endswith(".BSE") or ticker in STOCK_DB and ticker not in ["AAPL", "TSLA", "NVDA", "MSFT", "GOOGL", "AMZN", "META"] else "$"
 
     rsi_signal = "sell" if rsi > 70 else "buy" if rsi < 30 else "neutral-buy" if rsi > 55 else "neutral-sell" if rsi < 45 else "neutral"
     macd_signal = "buy" if macd > 0 else "sell"
@@ -159,7 +187,7 @@ def build_indicators(prices: list, trend: str) -> list:
     return [
         {"name": "RSI (14)",      "value": str(rsi),                    "signal": rsi_signal,  "display": str(rsi)},
         {"name": "MACD",          "value": str(macd),                   "signal": macd_signal, "display": ("+" if macd >= 0 else "") + str(macd)},
-        {"name": "SMA 20",        "value": str(sma20),                  "signal": sma_signal,  "display": "$" + "{:,.2f}".format(sma20)},
+        {"name": "SMA 20",        "value": str(sma20),                  "signal": sma_signal,  "display": currency + "{:,.2f}".format(sma20)},
         {"name": "Bollinger B.",  "value": f"{bb_lower}–{bb_upper}",   "signal": bb_signal,   "display": f"{bb_lower}–{bb_upper}"},
         {"name": "Volume Trend",  "value": trend,                       "signal": vol_signal,  "display": trend.upper()},
     ]
@@ -206,7 +234,6 @@ def predict_prices(base: float, trend: str, targets: dict = None) -> dict:
 # ── View Routes ────────────────────────────────────────────────────────────────
 @app.route('/')
 def home():
-    # If logged in, show analyzer, else show login
     if 'user' in session:
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
@@ -214,13 +241,40 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # Simple mock auth
         username = request.form.get('username')
         password = request.form.get('password')
-        if username and password: # Accepting any non-empty credentials for demo
+        users = load_users()
+        if username in users and users[username]['password'] == password:
             session['user'] = username
+            if 'watchlist' not in users[username]:
+                users[username]['watchlist'] = []
+                save_users(users)
             return redirect(url_for('dashboard'))
+        else:
+            return render_template('login.html', error="Invalid Operator ID or Access Code")
     return render_template('login.html')
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        confirm = request.form.get('confirm_password')
+        
+        if not username or not password:
+            return render_template('signup.html', error="Fields cannot be empty")
+        if password != confirm:
+            return render_template('signup.html', error="Passwords do not match")
+            
+        users = load_users()
+        if username in users:
+            return render_template('signup.html', error="Operator ID already registered")
+            
+        users[username] = {"password": password, "watchlist": []}
+        save_users(users)
+        session['user'] = username
+        return redirect(url_for('dashboard'))
+    return render_template('signup.html')
 
 @app.route('/logout')
 def logout():
@@ -244,6 +298,7 @@ def watchlist():
 
 
 @app.route('/api/analyze/<ticker>')
+@login_required
 def analyze(ticker: str):
     t_symbol = ticker.upper()
     
@@ -266,7 +321,7 @@ def analyze(ticker: str):
         if t in STOCK_DB:
             stock = {**STOCK_DB[t], "ticker": t}
         else:
-            price = round(random.uniform(50, 350), 2)
+            price = round(random.uniform(50, 3500), 2)
             change = round((random.random() - 0.48) * price * 0.04, 2)
             stock = {
                 "name": t + " Corp.",
@@ -277,7 +332,7 @@ def analyze(ticker: str):
                 "high52": round(price * 1.35, 2),
                 "low52": round(price * 0.72, 2),
                 "vol": f"{random.uniform(5, 80):.1f}M",
-                "cap": f"{random.uniform(20, 500):.0f}B",
+                "cap": f"{random.uniform(20, 500):.0f}Cr",
                 "trend": random.choice(["bullish", "neutral", "bearish"]),
             }
 
@@ -287,7 +342,7 @@ def analyze(ticker: str):
         labels = generate_labels(days)
 
     # Common analysis logic
-    indicators = build_indicators(prices, stock["trend"])
+    indicators = build_indicators(prices, stock["trend"], t_symbol)
     score = signal_score(indicators)
     
     # Refine score with analyst recommendation if available
@@ -314,7 +369,44 @@ def analyze(ticker: str):
     
     return jsonify(result)
 
+@app.route('/api/get_watchlist', methods=['GET'])
+@login_required
+def get_watchlist_api():
+    users = load_users()
+    user_data = users.get(session['user'], {})
+    w_list = user_data.get('watchlist', [])
+    
+    # Enrich watchlist with basic current data
+    enriched = []
+    for ticker in w_list:
+        real = get_real_stock_data(ticker)
+        if real:
+            enriched.append(real['stock'])
+        elif ticker.upper() in STOCK_DB:
+            enriched.append({**STOCK_DB[ticker.upper()], "ticker": ticker.upper()})
+        else:
+            enriched.append({"ticker": ticker, "name": ticker, "price": 0, "change": 0, "pct": 0})
+    return jsonify(enriched)
 
+@app.route('/api/watchlist/toggle/<ticker>', methods=['POST'])
+@login_required
+def toggle_watchlist_item(ticker: str):
+    ticker = ticker.upper()
+    users = load_users()
+    if session['user'] not in users:
+        return jsonify({"error": "User not found"}), 404
+    
+    w_list = users[session['user']].get('watchlist', [])
+    if ticker in w_list:
+        w_list.remove(ticker)
+        action = "removed"
+    else:
+        w_list.append(ticker)
+        action = "added"
+    
+    users[session['user']]['watchlist'] = w_list
+    save_users(users)
+    return jsonify({"status": "success", "action": action, "ticker": ticker, "watchlist": w_list})
 
 @app.route('/api/calculate', methods=['POST'])
 def calculate():
@@ -365,7 +457,7 @@ def calculate():
 
 @app.route('/api/health')
 def health():
-    return jsonify({"status": "ok", "service": "IntelliStock API", "version": "1.0.0"})
+    return jsonify({"status": "ok", "service": "IntelliStock API", "version": "1.1.0"})
 
 
 # ── Run ────────────────────────────────────────────────────────────────────────

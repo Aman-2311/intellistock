@@ -35,73 +35,25 @@
       <p class="welcome-sub">Assets saved for priority monitoring and AI alerts</p>
     </div>
 
-    <div class="card card-full">
-      <div class="card-header">
-        <span class="card-title">Saved Assets</span>
-        <div style="font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted);">PERSISTENT LOCAL CACHE: ENABLED</div>
+    <div id="watchlistContainer" class="watchlist-grid">
+      <!-- Dynamically filled by script.js -->
+      <div class="loading-state" style="padding: 100px; text-align: center;">
+        <div class="spinner"></div>
+        <div style="margin-top: 15px; color: var(--muted); font-family: 'Space Mono', monospace; font-size: 11px;">SYNCHRONIZING WITH CLOUD DATABASE...</div>
       </div>
-      <div class="table-wrap">
-        <table id="watchTable">
-          <thead>
-            <tr>
-              <th>Ticker</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="watchBody">
-            <!-- Dynamically filled -->
-          </tbody>
-        </table>
-      </div>
-      <div id="noWatches" style="display:none; padding:60px; text-align:center; color:var(--muted);">
-        <div style="font-size: 40px; margin-bottom: 20px; opacity: 0.3;">📉</div>
-        <p>No assets in your watch list yet.</p>
-        <a href="/analyze" class="btn-primary" style="display:inline-block; margin-top:20px; text-decoration:none;">Go to Analyzer →</a>
-      </div>
+    </div>
+    
+    <div class="disclaimer" style="margin-top: 40px;">
+      ⚠ System predictions generated via neural network analysis of real market feeds. <br/>
+      No financial fiduciary duty is created by usage of this terminal. High risk assets.
     </div>
   </div>
 </div>
 
-<script>
-  function renderWatchlist() {
-    const list = JSON.parse(localStorage.getItem('watchlist') || '[]');
-    const body = document.getElementById('watchBody');
-    const emptyState = document.getElementById('noWatches');
-    const table = document.getElementById('watchTable');
-    
-    if (list.length === 0) {
-      table.style.display = 'none';
-      emptyState.style.display = 'block';
-      return;
-    }
-    
-    body.innerHTML = '';
-    list.forEach(ticker => {
-      body.innerHTML += `
-        <tr class="tr-hover">
-          <td><b>${ticker}</b></td>
-          <td><span class="up" style="font-size: 11px;">● ACTIVE TRACKING</span></td>
-          <td>
-             <div style="display:flex; gap:10px;">
-               <button class="btn-primary" style="padding:4px 10px; font-size:10px;" onclick="window.location.href='/analyze?ticker=${ticker}'">Analyze</button>
-               <button class="btn-save" style="padding:4px 10px;" onclick="removeWatch('${ticker}')">Remove</button>
-             </div>
-          </td>
-        </tr>
-      `;
-    });
-  }
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
 
-  function removeWatch(ticker) {
-    let list = JSON.parse(localStorage.getItem('watchlist') || '[]');
-    list = list.filter(t => t !== ticker);
-    localStorage.setItem('watchlist', JSON.stringify(list));
-    renderWatchlist();
-  }
-
-  window.onload = renderWatchlist;
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/js/script.js"></script>
 </body>
 </html>
