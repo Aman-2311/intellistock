@@ -13,20 +13,24 @@ app = Flask(__name__)
 app.secret_key = 'intellistock_secret_key_99' # In production, use an environment variable
 CORS(app)
 
-USERS_FILE = 'users.json'
+USERS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'users.json')
 
 def load_users():
     if not os.path.exists(USERS_FILE):
         return {}
-    with open(USERS_FILE, 'r') as f:
-        try:
+    try:
+        with open(USERS_FILE, 'r') as f:
             return json.load(f)
-        except json.JSONDecodeError:
-            return {}
+    except (json.JSONDecodeError, FileNotFoundError, PermissionError) as e:
+        print(f"Error loading users: {e}")
+        return {}
 
 def save_users(users):
-    with open(USERS_FILE, 'w') as f:
-        json.dump(users, f, indent=4)
+    try:
+        with open(USERS_FILE, 'w') as f:
+            json.dump(users, f, indent=4)
+    except Exception as e:
+        print(f"Error saving users: {e}")
 
 # ── Auth Decorator ──────────────────────────────────────────────────────────
 def login_required(f):
@@ -257,23 +261,27 @@ def login():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        confirm = request.form.get('confirm_password')
-        
-        if not username or not password:
-            return render_template('signup.html', error="Fields cannot be empty")
-        if password != confirm:
-            return render_template('signup.html', error="Passwords do not match")
+        try:
+            username = request.form.get('username')
+            password = request.form.get('password')
+            confirm = request.form.get('confirm_password')
             
-        users = load_users()
-        if username in users:
-            return render_template('signup.html', error="Operator ID already registered")
-            
-        users[username] = {"password": password, "watchlist": []}
-        save_users(users)
-        session['user'] = username
-        return redirect(url_for('dashboard'))
+            if not username or not password:
+                return render_template('signup.html', error="Fields cannot be empty")
+            if password != confirm:
+                return render_template('signup.html', error="Passwords do not match")
+                
+            users = load_users()
+            if username in users:
+                return render_template('signup.html', error="Operator ID already registered")
+                
+            users[username] = {"password": password, "watchlist": []}
+            save_users(users)
+            session['user'] = username
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            print(f"Signup error: {e}")
+            return render_template('signup.html', error=f"Internal Error: {str(e)}")
     return render_template('signup.html')
 
 @app.route('/logout')
